@@ -1,4 +1,3 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { formatCurrency } from "@/lib/mortgage"
 import type { CalculationResults } from "@/lib/mortgage"
 import { CalendarCheck, PiggyBank, TrendingDown, Clock } from "lucide-react"
@@ -13,85 +12,58 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
   const remainingMonths = monthsSaved % 12
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      <Card>
-        <CardHeader className="pb-1">
-          <CardTitle className="text-xs font-medium text-muted-foreground flex items-center gap-1.5">
-            <CalendarCheck className="h-3.5 w-3.5" />
-            Baseline Payoff
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-lg font-bold">{baseline.payoffDateLabel}</div>
-          <p className="text-xs text-muted-foreground">
-            {baseline.totalMonths} mo &middot; {formatCurrency(baseline.totalInterest)} int.
-          </p>
-        </CardContent>
-      </Card>
+    <div className="grid grid-cols-4 gap-2">
+      <div className="rounded-lg border px-3 py-2">
+        <p className="text-[10px] font-medium text-muted-foreground flex items-center gap-1 mb-0.5">
+          <CalendarCheck className="h-3 w-3" />
+          Baseline
+        </p>
+        <p className="text-base font-bold">{baseline.payoffDateLabel}</p>
+        <p className="text-[10px] text-muted-foreground">
+          {baseline.totalMonths} mo &middot; {formatCurrency(baseline.totalInterest)} int.
+        </p>
+      </div>
 
       {accelerated ? (
         <>
-          <Card className="border-green-200 bg-green-50/50">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-xs font-medium text-green-700 flex items-center gap-1.5">
-                <CalendarCheck className="h-3.5 w-3.5" />
-                Accelerated Payoff
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold text-green-700">
-                {accelerated.payoffDateLabel}
-              </div>
-              <p className="text-xs text-green-600">
-                {accelerated.totalMonths} mo &middot; {formatCurrency(accelerated.totalInterest)} int.
-              </p>
-            </CardContent>
-          </Card>
+          <div className="rounded-lg border border-green-200 bg-green-50/50 px-3 py-2">
+            <p className="text-[10px] font-medium text-green-700 flex items-center gap-1 mb-0.5">
+              <CalendarCheck className="h-3 w-3" />
+              Accelerated
+            </p>
+            <p className="text-base font-bold text-green-700">{accelerated.payoffDateLabel}</p>
+            <p className="text-[10px] text-green-600">
+              {accelerated.totalMonths} mo &middot; {formatCurrency(accelerated.totalInterest)} int.
+            </p>
+          </div>
 
-          <Card className="border-blue-200 bg-blue-50/50">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-xs font-medium text-blue-700 flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5" />
-                Time Saved
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold text-blue-700">
-                {yearsSaved > 0 && `${yearsSaved}y `}
-                {remainingMonths}m
-              </div>
-              <p className="text-xs text-blue-600">
-                {monthsSaved} months earlier
-              </p>
-            </CardContent>
-          </Card>
+          <div className="rounded-lg border border-blue-200 bg-blue-50/50 px-3 py-2">
+            <p className="text-[10px] font-medium text-blue-700 flex items-center gap-1 mb-0.5">
+              <Clock className="h-3 w-3" />
+              Time Saved
+            </p>
+            <p className="text-base font-bold text-blue-700">
+              {yearsSaved > 0 && `${yearsSaved}y `}{remainingMonths}m
+            </p>
+            <p className="text-[10px] text-blue-600">{monthsSaved} months earlier</p>
+          </div>
 
-          <Card className="border-purple-200 bg-purple-50/50">
-            <CardHeader className="pb-1">
-              <CardTitle className="text-xs font-medium text-purple-700 flex items-center gap-1.5">
-                <PiggyBank className="h-3.5 w-3.5" />
-                Interest Saved
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="text-lg font-bold text-purple-700">
-                {formatCurrency(interestSaved)}
-              </div>
-              <p className="text-xs text-purple-600">
-                less interest
-              </p>
-            </CardContent>
-          </Card>
+          <div className="rounded-lg border border-purple-200 bg-purple-50/50 px-3 py-2">
+            <p className="text-[10px] font-medium text-purple-700 flex items-center gap-1 mb-0.5">
+              <PiggyBank className="h-3 w-3" />
+              Interest Saved
+            </p>
+            <p className="text-base font-bold text-purple-700">{formatCurrency(interestSaved)}</p>
+            <p className="text-[10px] text-purple-600">less interest</p>
+          </div>
         </>
       ) : (
-        <Card className="col-span-3 border-dashed">
-          <CardContent className="flex items-center justify-center py-6">
-            <p className="text-muted-foreground text-xs flex items-center gap-1.5">
-              <TrendingDown className="h-3.5 w-3.5" />
-              Add extra payments to see savings
-            </p>
-          </CardContent>
-        </Card>
+        <div className="col-span-3 rounded-lg border border-dashed flex items-center justify-center py-4">
+          <p className="text-muted-foreground text-xs flex items-center gap-1.5">
+            <TrendingDown className="h-3.5 w-3.5" />
+            Add extra payments to see savings
+          </p>
+        </div>
       )}
     </div>
   )
