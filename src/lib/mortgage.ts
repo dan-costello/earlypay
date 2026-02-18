@@ -15,6 +15,7 @@ export interface MortgageInputs {
   extraMonthly: number
   extraAnnual: number
   extraAnnualMonth: number // 1-12, which month annual payment is made
+  biweekly: boolean // pay every 2 weeks (13 payments/year instead of 12)
   lumpSums: LumpSumPayment[]
   investmentRate: number // annual percentage for investment comparison
 }
@@ -254,6 +255,10 @@ export function calculate(inputs: MortgageInputs): CalculationResults {
   const startDate = getCurrentMonth().date // always start from current month
   const maxMonths = inputs.mortgageLengthYears * 12
 
+  // Biweekly: 26 half-payments/year = 13 full payments instead of 12
+  // The extra is equivalent to monthlyPI / 12 added each month
+  const biweeklyExtra = inputs.biweekly ? inputs.monthlyPI / 12 : 0
+
   const baseline = computeAmortization(
     startDate,
     inputs.currentBalance,
@@ -266,8 +271,10 @@ export function calculate(inputs: MortgageInputs): CalculationResults {
     maxMonths * 2
   )
 
+  const effectiveExtraMonthly = inputs.extraMonthly + biweeklyExtra
+
   const hasExtraPayments =
-    inputs.extraMonthly > 0 ||
+    effectiveExtraMonthly > 0 ||
     inputs.extraAnnual > 0 ||
     inputs.lumpSums.some((ls) => ls.amount > 0)
 
@@ -282,7 +289,7 @@ export function calculate(inputs: MortgageInputs): CalculationResults {
       inputs.currentBalance,
       monthlyRate,
       inputs.monthlyPI,
-      inputs.extraMonthly,
+      effectiveExtraMonthly,
       inputs.extraAnnual,
       inputs.extraAnnualMonth,
       inputs.lumpSums,

@@ -25,6 +25,7 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
   const [mortgageLength, setMortgageLength] = useState("30")
   const [currentBalance, setCurrentBalance] = useState("340000")
   const [piOverride, setPiOverride] = useState("") // empty = use calculated value
+  const [biweekly, setBiweekly] = useState(false)
   const [extraMonthly, setExtraMonthly] = useState("")
   const [extraAnnual, setExtraAnnual] = useState("")
   const [extraAnnualMonth, setExtraAnnualMonth] = useState("1")
@@ -74,6 +75,7 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
       mortgageLengthYears: parseInt(mortgageLength) || 30,
       currentBalance: parseFloat(currentBalance) || 0,
       monthlyPI: effectivePI,
+      biweekly,
       extraMonthly: parseFloat(extraMonthly) || 0,
       extraAnnual: parseFloat(extraAnnual) || 0,
       extraAnnualMonth: parseInt(extraAnnualMonth) || 1,
@@ -228,6 +230,23 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
               </Select>
             </div>
           </div>
+
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={biweekly}
+              onChange={(e) => setBiweekly(e.target.checked)}
+              className="h-4 w-4 rounded border-input accent-primary"
+            />
+            <span className="text-sm font-medium">Biweekly payments</span>
+            <span className="text-xs text-muted-foreground">
+              (pay every 2 weeks = 13 payments/year
+              {calculatedPI > 0 && biweekly && (
+                <>, ~{formatCurrencyExact(effectivePI / 12)}/mo extra</>
+              )}
+              )
+            </span>
+          </label>
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
