@@ -1,4 +1,4 @@
-import { useState } from "react"
+import { useState, useCallback } from "react"
 import { MortgageForm } from "@/components/MortgageForm"
 import { ResultsSummary } from "@/components/ResultsSummary"
 import { Charts } from "@/components/Charts"
@@ -15,10 +15,10 @@ function App() {
   const [showBaselineSchedule, setShowBaselineSchedule] = useState(false)
   const [showAcceleratedSchedule, setShowAcceleratedSchedule] = useState(false)
 
-  function handleCalculate(inputs: MortgageInputs) {
+  const handleCalculate = useCallback((inputs: MortgageInputs) => {
     const res = calculate(inputs)
     setResults(res)
-  }
+  }, [])
 
   return (
     <div className="min-h-screen bg-background">
