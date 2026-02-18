@@ -15,7 +15,7 @@ export function InvestmentSummary({ results }: InvestmentSummaryProps) {
   const paydownTotal = investment.earlyPayoffThenInvestFinalValue + interestSaved
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+    <div className="space-y-3">
       <Card className="border-blue-200 bg-blue-50/50">
         <CardHeader className="pb-1">
           <CardTitle className="text-xs font-medium text-blue-700">
