@@ -1,4 +1,4 @@
-import { addMonths, format, isAfter, isSameMonth } from "date-fns"
+import { addMonths, format, isSameMonth } from "date-fns"
 
 export interface LumpSumPayment {
   id: string
@@ -7,11 +7,11 @@ export interface LumpSumPayment {
 }
 
 export interface MortgageInputs {
-  startDate: string // YYYY-MM format
+  originalLoanAmount: number
   interestRate: number // annual percentage, e.g. 6.5
   mortgageLengthYears: number
   currentBalance: number
-  currentPI: number // monthly principal & interest payment
+  monthlyPI: number // monthly principal & interest payment (auto-calculated or overridden)
   extraMonthly: number
   extraAnnual: number
   extraAnnualMonth: number // 1-12, which month annual payment is made
@@ -43,19 +43,16 @@ export interface AmortizationResult {
 }
 
 export interface InvestmentResult {
-  // Scenario A: invest the extra payments instead, keep mortgage at minimum
   investExtraFinalValue: number
   investExtraContributions: number
   investExtraGrowth: number
   investExtraMonthlyData: { month: number; dateLabel: string; value: number }[]
 
-  // Scenario B: pay off mortgage early, then invest full P&I for remaining term
   earlyPayoffThenInvestFinalValue: number
   earlyPayoffThenInvestContributions: number
   earlyPayoffThenInvestGrowth: number
   earlyPayoffThenInvestMonthlyData: { month: number; dateLabel: string; value: number }[]
 
-  // Net comparison
   betterStrategy: "invest" | "paydown" | "equal"
   difference: number
 }
@@ -66,6 +63,28 @@ export interface CalculationResults {
   interestSaved: number
   monthsSaved: number
   investment: InvestmentResult | null
+}
+
+/** Calculate the standard monthly P&I payment from original loan parameters */
+export function calculateMonthlyPI(
+  loanAmount: number,
+  annualRate: number,
+  termYears: number
+): number {
+  const r = annualRate / 100 / 12
+  const n = termYears * 12
+  if (r === 0) return loanAmount / n
+  return (loanAmount * r * Math.pow(1 + r, n)) / (Math.pow(1 + r, n) - 1)
+}
+
+/** Get current month as YYYY-MM string and as a Date (1st of the month) */
+export function getCurrentMonth(): { str: string; date: Date } {
+  const now = new Date()
+  const y = now.getFullYear()
+  const m = now.getMonth() // 0-indexed
+  const date = new Date(y, m, 1)
+  const str = format(date, "yyyy-MM")
+  return { str, date }
 }
 
 function computeAmortization(
@@ -95,17 +114,19 @@ function computeAmortization(
 
     let extra = extraMonthly
 
-    // Annual extra payment
     if (extraAnnual > 0 && (currentDate.getMonth() + 1) === extraAnnualMonth) {
       extra += extraAnnual
     }
 
-    // Lump sum payments
     for (const ls of lumpSums) {
       if (ls.amount > 0 && isSameMonth(currentDate, new Date(ls.date + "-01"))) {
         extra += ls.amount
       }
     }
+
+    // Cap extra so we don't overpay
+    const maxExtra = Math.max(0, currentBalance - (basePaymentThisMonth - interestCharge))
+    extra = Math.min(extra, maxExtra)
 
     const totalPayment = basePaymentThisMonth + extra
     const principalPaid = Math.min(totalPayment - interestCharge, currentBalance)
@@ -146,20 +167,17 @@ function computeAmortization(
 function computeInvestment(
   baseline: AmortizationResult,
   accelerated: AmortizationResult,
-  monthlyRate: number,
   basePayment: number,
   investmentRateAnnual: number
 ): InvestmentResult {
   const investMonthlyRate = investmentRateAnnual / 100 / 12
-  const totalMonths = baseline.totalMonths // comparison horizon is the original mortgage term
+  const totalMonths = baseline.totalMonths
 
-  // Scenario A: invest the extra payments instead of paying down mortgage
   let investExtraBalance = 0
   let investExtraContributions = 0
   const investExtraMonthlyData: { month: number; dateLabel: string; value: number }[] = []
 
   for (let i = 0; i < totalMonths; i++) {
-    // The extra amount that would have been paid in the accelerated schedule
     const extraThisMonth = i < accelerated.schedule.length
       ? accelerated.schedule[i].extraPayment
       : 0
@@ -178,7 +196,6 @@ function computeInvestment(
     })
   }
 
-  // Scenario B: pay off mortgage early, then invest full P&I for remaining months
   let earlyPayoffBalance = 0
   let earlyPayoffContributions = 0
   const earlyPayoffMonthlyData: { month: number; dateLabel: string; value: number }[] = []
@@ -187,15 +204,10 @@ function computeInvestment(
     const isPaidOff = i >= accelerated.totalMonths
 
     if (isPaidOff) {
-      // After payoff, invest the full P&I amount plus the extra amounts
-      const extraThisMonth = i < accelerated.schedule.length
-        ? accelerated.schedule[i].extraPayment
-        : 0
-      const contribution = basePayment + extraThisMonth
+      const contribution = basePayment
       earlyPayoffBalance = earlyPayoffBalance * (1 + investMonthlyRate) + contribution
       earlyPayoffContributions += contribution
     } else {
-      // Before payoff, just compound what's already there (nothing extra to invest)
       earlyPayoffBalance = earlyPayoffBalance * (1 + investMonthlyRate)
     }
 
@@ -210,9 +222,7 @@ function computeInvestment(
     })
   }
 
-  // Also account for the interest saved by paying off early
   const interestSaved = baseline.totalInterest - accelerated.totalInterest
-  // The paydown strategy total wealth = investment growth + interest saved
   const paydownTotalBenefit = earlyPayoffBalance + interestSaved
 
   const betterStrategy: "invest" | "paydown" | "equal" =
@@ -241,20 +251,19 @@ function computeInvestment(
 
 export function calculate(inputs: MortgageInputs): CalculationResults {
   const monthlyRate = inputs.interestRate / 100 / 12
-  const startDate = new Date(inputs.startDate + "-01")
+  const startDate = getCurrentMonth().date // always start from current month
   const maxMonths = inputs.mortgageLengthYears * 12
 
-  // Baseline: minimum payments only
   const baseline = computeAmortization(
     startDate,
     inputs.currentBalance,
     monthlyRate,
-    inputs.currentPI,
+    inputs.monthlyPI,
     0,
     0,
     1,
     [],
-    maxMonths * 2 // allow extra buffer
+    maxMonths * 2
   )
 
   const hasExtraPayments =
@@ -272,7 +281,7 @@ export function calculate(inputs: MortgageInputs): CalculationResults {
       startDate,
       inputs.currentBalance,
       monthlyRate,
-      inputs.currentPI,
+      inputs.monthlyPI,
       inputs.extraMonthly,
       inputs.extraAnnual,
       inputs.extraAnnualMonth,
@@ -287,8 +296,7 @@ export function calculate(inputs: MortgageInputs): CalculationResults {
       investment = computeInvestment(
         baseline,
         accelerated,
-        monthlyRate,
-        inputs.currentPI,
+        inputs.monthlyPI,
         inputs.investmentRate
       )
     }

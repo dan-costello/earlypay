@@ -1,10 +1,11 @@
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useMemo } from "react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash2, Calculator } from "lucide-react"
+import { calculateMonthlyPI, formatCurrencyExact, getCurrentMonth } from "@/lib/mortgage"
 import type { MortgageInputs, LumpSumPayment } from "@/lib/mortgage"
 
 interface MortgageFormProps {
@@ -19,16 +20,28 @@ const MONTH_NAMES = [
 let lumpSumCounter = 0
 
 export function MortgageForm({ onCalculate }: MortgageFormProps) {
-  const [startDate, setStartDate] = useState("2024-01")
+  const [originalLoanAmount, setOriginalLoanAmount] = useState("350000")
   const [interestRate, setInterestRate] = useState("6.5")
   const [mortgageLength, setMortgageLength] = useState("30")
-  const [currentBalance, setCurrentBalance] = useState("350000")
-  const [currentPI, setCurrentPI] = useState("2212")
+  const [currentBalance, setCurrentBalance] = useState("340000")
+  const [piOverride, setPiOverride] = useState("") // empty = use calculated value
   const [extraMonthly, setExtraMonthly] = useState("")
   const [extraAnnual, setExtraAnnual] = useState("")
   const [extraAnnualMonth, setExtraAnnualMonth] = useState("1")
   const [investmentRate, setInvestmentRate] = useState("8")
   const [lumpSums, setLumpSums] = useState<(LumpSumPayment & { dateStr: string; amountStr: string })[]>([])
+
+  const calculatedPI = useMemo(() => {
+    const loan = parseFloat(originalLoanAmount) || 0
+    const rate = parseFloat(interestRate) || 0
+    const term = parseInt(mortgageLength) || 30
+    if (loan <= 0 || rate < 0 || term <= 0) return 0
+    return calculateMonthlyPI(loan, rate, term)
+  }, [originalLoanAmount, interestRate, mortgageLength])
+
+  const effectivePI = piOverride ? parseFloat(piOverride) || 0 : calculatedPI
+
+  const currentMonth = useMemo(() => getCurrentMonth(), [])
 
   function addLumpSum() {
     setLumpSums([
@@ -56,11 +69,11 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     onCalculate({
-      startDate,
+      originalLoanAmount: parseFloat(originalLoanAmount) || 0,
       interestRate: parseFloat(interestRate) || 0,
       mortgageLengthYears: parseInt(mortgageLength) || 30,
       currentBalance: parseFloat(currentBalance) || 0,
-      currentPI: parseFloat(currentPI) || 0,
+      monthlyPI: effectivePI,
       extraMonthly: parseFloat(extraMonthly) || 0,
       extraAnnual: parseFloat(extraAnnual) || 0,
       extraAnnualMonth: parseInt(extraAnnualMonth) || 1,
@@ -74,71 +87,98 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Mortgage Details</CardTitle>
+          <CardDescription>
+            All projections start from {currentMonth.str.replace("-", "/")} (this month)
+          </CardDescription>
         </CardHeader>
-        <CardContent className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-2">
-            <Label htmlFor="startDate">Start Date</Label>
-            <Input
-              id="startDate"
-              type="month"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="interestRate">Interest Rate (%)</Label>
-            <Input
-              id="interestRate"
-              type="number"
-              step="0.01"
-              min="0"
-              max="30"
-              value={interestRate}
-              onChange={(e) => setInterestRate(e.target.value)}
-              placeholder="6.5"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="mortgageLength">Mortgage Length (years)</Label>
-            <Input
-              id="mortgageLength"
-              type="number"
-              step="1"
-              min="1"
-              max="50"
-              value={mortgageLength}
-              onChange={(e) => setMortgageLength(e.target.value)}
-              placeholder="30"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currentBalance">Current Balance ($)</Label>
-            <Input
-              id="currentBalance"
-              type="number"
-              step="0.01"
-              min="0"
-              value={currentBalance}
-              onChange={(e) => setCurrentBalance(e.target.value)}
-              placeholder="350,000"
-              required
-            />
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="currentPI">Monthly P&I Payment ($)</Label>
-            <Input
-              id="currentPI"
-              type="number"
-              step="0.01"
-              min="0"
-              value={currentPI}
-              onChange={(e) => setCurrentPI(e.target.value)}
-              placeholder="2,212"
-              required
-            />
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="originalLoanAmount">Original Loan Amount ($)</Label>
+              <Input
+                id="originalLoanAmount"
+                type="number"
+                step="0.01"
+                min="0"
+                value={originalLoanAmount}
+                onChange={(e) => setOriginalLoanAmount(e.target.value)}
+                placeholder="350,000"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="interestRate">Interest Rate (%)</Label>
+              <Input
+                id="interestRate"
+                type="number"
+                step="0.01"
+                min="0"
+                max="30"
+                value={interestRate}
+                onChange={(e) => setInterestRate(e.target.value)}
+                placeholder="6.5"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="mortgageLength">Mortgage Term (years)</Label>
+              <Input
+                id="mortgageLength"
+                type="number"
+                step="1"
+                min="1"
+                max="50"
+                value={mortgageLength}
+                onChange={(e) => setMortgageLength(e.target.value)}
+                placeholder="30"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="currentBalance">Current Balance ($)</Label>
+              <Input
+                id="currentBalance"
+                type="number"
+                step="0.01"
+                min="0"
+                value={currentBalance}
+                onChange={(e) => setCurrentBalance(e.target.value)}
+                placeholder="340,000"
+                required
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="monthlyPI" className="flex items-center gap-1.5">
+                <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
+                Monthly P&I ($)
+              </Label>
+              <Input
+                id="monthlyPI"
+                type="number"
+                step="0.01"
+                min="0"
+                value={piOverride}
+                onChange={(e) => setPiOverride(e.target.value)}
+                placeholder={calculatedPI > 0 ? formatCurrencyExact(calculatedPI).replace("$", "") : "0.00"}
+              />
+              {calculatedPI > 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Calculated: {formatCurrencyExact(calculatedPI)}/mo
+                  {piOverride && (
+                    <>
+                      {" "}&middot;{" "}
+                      <button
+                        type="button"
+                        className="text-primary underline underline-offset-2"
+                        onClick={() => setPiOverride("")}
+                      >
+                        use calculated
+                      </button>
+                    </>
+                  )}
+                </p>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>
