@@ -88,6 +88,14 @@ export function getCurrentMonth(): { str: string; date: Date } {
   return { str, date }
 }
 
+/** Get next month — projections start here since current month's payment is likely already made */
+export function getNextMonth(): { str: string; date: Date } {
+  const now = new Date()
+  const date = addMonths(new Date(now.getFullYear(), now.getMonth(), 1), 1)
+  const str = format(date, "yyyy-MM")
+  return { str, date }
+}
+
 function computeAmortization(
   startDate: Date,
   balance: number,
@@ -252,7 +260,7 @@ function computeInvestment(
 
 export function calculate(inputs: MortgageInputs): CalculationResults {
   const monthlyRate = inputs.interestRate / 100 / 12
-  const startDate = getCurrentMonth().date // always start from current month
+  const startDate = getNextMonth().date // start from next month (current month's payment already made)
   const maxMonths = inputs.mortgageLengthYears * 12
 
   // Biweekly: 26 half-payments/year = 13 full payments instead of 12

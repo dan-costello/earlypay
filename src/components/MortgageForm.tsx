@@ -1,11 +1,10 @@
-import { useState, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { useState, useMemo, useEffect, useCallback } from "react"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Select } from "@/components/ui/select"
 import { Plus, Trash2, Calculator } from "lucide-react"
-import { calculateMonthlyPI, formatCurrencyExact, getCurrentMonth } from "@/lib/mortgage"
+import { calculateMonthlyPI, formatCurrencyExact, getNextMonth } from "@/lib/mortgage"
 import type { MortgageInputs, LumpSumPayment } from "@/lib/mortgage"
 
 interface MortgageFormProps {
@@ -13,8 +12,8 @@ interface MortgageFormProps {
 }
 
 const MONTH_NAMES = [
-  "January", "February", "March", "April", "May", "June",
-  "July", "August", "September", "October", "November", "December",
+  "Jan", "Feb", "Mar", "Apr", "May", "Jun",
+  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec",
 ]
 
 let lumpSumCounter = 0
@@ -24,7 +23,7 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
   const [interestRate, setInterestRate] = useState("6.5")
   const [mortgageLength, setMortgageLength] = useState("30")
   const [currentBalance, setCurrentBalance] = useState("340000")
-  const [piOverride, setPiOverride] = useState("") // empty = use calculated value
+  const [piOverride, setPiOverride] = useState("")
   const [biweekly, setBiweekly] = useState(false)
   const [extraMonthly, setExtraMonthly] = useState("")
   const [extraAnnual, setExtraAnnual] = useState("")
@@ -42,7 +41,7 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
 
   const effectivePI = piOverride ? parseFloat(piOverride) || 0 : calculatedPI
 
-  const currentMonth = useMemo(() => getCurrentMonth(), [])
+  const nextMonth = useMemo(() => getNextMonth(), [])
 
   function addLumpSum() {
     setLumpSums([
@@ -67,13 +66,14 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
     )
   }
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault()
+  const doCalculate = useCallback(() => {
+    const balance = parseFloat(currentBalance) || 0
+    if (balance <= 0 || effectivePI <= 0) return
     onCalculate({
       originalLoanAmount: parseFloat(originalLoanAmount) || 0,
       interestRate: parseFloat(interestRate) || 0,
       mortgageLengthYears: parseInt(mortgageLength) || 30,
-      currentBalance: parseFloat(currentBalance) || 0,
+      currentBalance: balance,
       monthlyPI: effectivePI,
       biweekly,
       extraMonthly: parseFloat(extraMonthly) || 0,
@@ -82,129 +82,138 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
       lumpSums: lumpSums.map((ls) => ({ id: ls.id, date: ls.date, amount: ls.amount })),
       investmentRate: parseFloat(investmentRate) || 0,
     })
-  }
+  }, [originalLoanAmount, interestRate, mortgageLength, currentBalance, effectivePI, biweekly, extraMonthly, extraAnnual, extraAnnualMonth, lumpSums, investmentRate, onCalculate])
+
+  // Auto-calculate on any input change
+  useEffect(() => {
+    doCalculate()
+  }, [doCalculate])
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Mortgage Details</CardTitle>
-          <CardDescription>
-            All projections start from {currentMonth.str.replace("-", "/")} (this month)
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="originalLoanAmount">Original Loan Amount ($)</Label>
-              <Input
-                id="originalLoanAmount"
-                type="number"
-                step="0.01"
-                min="0"
-                value={originalLoanAmount}
-                onChange={(e) => setOriginalLoanAmount(e.target.value)}
-                placeholder="350,000"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="interestRate">Interest Rate (%)</Label>
-              <Input
-                id="interestRate"
-                type="number"
-                step="0.01"
-                min="0"
-                max="30"
-                value={interestRate}
-                onChange={(e) => setInterestRate(e.target.value)}
-                placeholder="6.5"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="mortgageLength">Mortgage Term (years)</Label>
-              <Input
-                id="mortgageLength"
-                type="number"
-                step="1"
-                min="1"
-                max="50"
-                value={mortgageLength}
-                onChange={(e) => setMortgageLength(e.target.value)}
-                placeholder="30"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currentBalance">Current Balance ($)</Label>
-              <Input
-                id="currentBalance"
-                type="number"
-                step="0.01"
-                min="0"
-                value={currentBalance}
-                onChange={(e) => setCurrentBalance(e.target.value)}
-                placeholder="340,000"
-                required
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="monthlyPI" className="flex items-center gap-1.5">
-                <Calculator className="h-3.5 w-3.5 text-muted-foreground" />
-                Monthly P&I ($)
-              </Label>
-              <Input
-                id="monthlyPI"
-                type="number"
-                step="0.01"
-                min="0"
-                value={piOverride}
-                onChange={(e) => setPiOverride(e.target.value)}
-                placeholder={calculatedPI > 0 ? formatCurrencyExact(calculatedPI).replace("$", "") : "0.00"}
-              />
-              {calculatedPI > 0 && (
-                <p className="text-xs text-muted-foreground">
-                  Calculated: {formatCurrencyExact(calculatedPI)}/mo
-                  {piOverride && (
-                    <>
-                      {" "}&middot;{" "}
-                      <button
-                        type="button"
-                        className="text-primary underline underline-offset-2"
-                        onClick={() => setPiOverride("")}
-                      >
-                        use calculated
-                      </button>
-                    </>
-                  )}
-                </p>
-              )}
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="space-y-5">
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+          Mortgage Details
+        </h2>
+        <p className="text-xs text-muted-foreground mt-0.5">
+          Projections start {nextMonth.str.replace("-", "/")}
+        </p>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Extra Payments</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="extraMonthly">Extra Monthly ($)</Label>
-              <Input
-                id="extraMonthly"
-                type="number"
-                step="0.01"
-                min="0"
-                value={extraMonthly}
-                onChange={(e) => setExtraMonthly(e.target.value)}
-                placeholder="0"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="extraAnnual">Extra Annual ($)</Label>
+      <div className="space-y-3">
+        <div className="space-y-1">
+          <Label htmlFor="originalLoanAmount" className="text-xs">Original Loan ($)</Label>
+          <Input
+            id="originalLoanAmount"
+            type="number"
+            step="0.01"
+            min="0"
+            value={originalLoanAmount}
+            onChange={(e) => setOriginalLoanAmount(e.target.value)}
+            className="h-8 text-sm"
+            required
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-2">
+          <div className="space-y-1">
+            <Label htmlFor="interestRate" className="text-xs">Rate (%)</Label>
+            <Input
+              id="interestRate"
+              type="number"
+              step="0.01"
+              min="0"
+              max="30"
+              value={interestRate}
+              onChange={(e) => setInterestRate(e.target.value)}
+              className="h-8 text-sm"
+              required
+            />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="mortgageLength" className="text-xs">Term (yrs)</Label>
+            <Input
+              id="mortgageLength"
+              type="number"
+              step="1"
+              min="1"
+              max="50"
+              value={mortgageLength}
+              onChange={(e) => setMortgageLength(e.target.value)}
+              className="h-8 text-sm"
+              required
+            />
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="currentBalance" className="text-xs">Current Balance ($)</Label>
+          <Input
+            id="currentBalance"
+            type="number"
+            step="0.01"
+            min="0"
+            value={currentBalance}
+            onChange={(e) => setCurrentBalance(e.target.value)}
+            className="h-8 text-sm"
+            required
+          />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="monthlyPI" className="text-xs flex items-center gap-1">
+            <Calculator className="h-3 w-3 text-muted-foreground" />
+            Monthly P&I ($)
+          </Label>
+          <Input
+            id="monthlyPI"
+            type="number"
+            step="0.01"
+            min="0"
+            value={piOverride}
+            onChange={(e) => setPiOverride(e.target.value)}
+            placeholder={calculatedPI > 0 ? formatCurrencyExact(calculatedPI).replace("$", "") : "0.00"}
+            className="h-8 text-sm"
+          />
+          {calculatedPI > 0 && (
+            <p className="text-[10px] text-muted-foreground leading-tight">
+              Calc: {formatCurrencyExact(calculatedPI)}
+              {piOverride && (
+                <>
+                  {" · "}
+                  <button
+                    type="button"
+                    className="text-primary underline underline-offset-2"
+                    onClick={() => setPiOverride("")}
+                  >
+                    reset
+                  </button>
+                </>
+              )}
+            </p>
+          )}
+        </div>
+      </div>
+
+      {/* Extra Payments */}
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Extra Payments
+        </h2>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label htmlFor="extraMonthly" className="text-xs">Extra Monthly ($)</Label>
+            <Input
+              id="extraMonthly"
+              type="number"
+              step="0.01"
+              min="0"
+              value={extraMonthly}
+              onChange={(e) => setExtraMonthly(e.target.value)}
+              placeholder="0"
+              className="h-8 text-sm"
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1">
+              <Label htmlFor="extraAnnual" className="text-xs">Extra Annual ($)</Label>
               <Input
                 id="extraAnnual"
                 type="number"
@@ -213,14 +222,16 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
                 value={extraAnnual}
                 onChange={(e) => setExtraAnnual(e.target.value)}
                 placeholder="0"
+                className="h-8 text-sm"
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="extraAnnualMonth">Annual Payment Month</Label>
+            <div className="space-y-1">
+              <Label htmlFor="extraAnnualMonth" className="text-xs">In Month</Label>
               <Select
                 id="extraAnnualMonth"
                 value={extraAnnualMonth}
                 onChange={(e) => setExtraAnnualMonth(e.target.value)}
+                className="h-8 text-sm"
               >
                 {MONTH_NAMES.map((name, i) => (
                   <option key={i} value={String(i + 1)}>
@@ -231,50 +242,52 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
             </div>
           </div>
 
-          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+          <label className="flex items-start gap-2 cursor-pointer select-none">
             <input
               type="checkbox"
               checked={biweekly}
               onChange={(e) => setBiweekly(e.target.checked)}
-              className="h-4 w-4 rounded border-input accent-primary"
+              className="h-4 w-4 mt-0.5 rounded border-input accent-primary"
             />
-            <span className="text-sm font-medium">Biweekly payments</span>
-            <span className="text-xs text-muted-foreground">
-              (pay every 2 weeks = 13 payments/year
-              {calculatedPI > 0 && biweekly && (
-                <>, ~{formatCurrencyExact(effectivePI / 12)}/mo extra</>
-              )}
-              )
+            <span className="text-xs leading-tight">
+              <span className="font-medium">Biweekly</span>
+              <span className="text-muted-foreground block">
+                13 payments/yr
+                {calculatedPI > 0 && biweekly && (
+                  <> (+{formatCurrencyExact(effectivePI / 12)}/mo)</>
+                )}
+              </span>
             </span>
           </label>
 
-          <div className="space-y-3">
+          {/* Lump Sums */}
+          <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <Label>Lump Sum Payments</Label>
-              <Button type="button" variant="outline" size="sm" onClick={addLumpSum}>
-                <Plus className="h-4 w-4 mr-1" />
-                Add Lump Sum
+              <Label className="text-xs">Lump Sums</Label>
+              <Button type="button" variant="outline" size="sm" onClick={addLumpSum} className="h-6 px-2 text-[10px]">
+                <Plus className="h-3 w-3 mr-0.5" />
+                Add
               </Button>
             </div>
             {lumpSums.map((ls) => (
-              <div key={ls.id} className="flex items-end gap-3">
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
+              <div key={ls.id} className="flex items-end gap-1.5">
+                <div className="flex-1 space-y-0.5">
                   <Input
                     type="month"
                     value={ls.dateStr}
                     onChange={(e) => updateLumpSum(ls.id, "dateStr", e.target.value)}
+                    className="h-7 text-xs"
                   />
                 </div>
-                <div className="flex-1 space-y-1">
-                  <Label className="text-xs text-muted-foreground">Amount ($)</Label>
+                <div className="flex-1 space-y-0.5">
                   <Input
                     type="number"
                     step="0.01"
                     min="0"
                     value={ls.amountStr}
                     onChange={(e) => updateLumpSum(ls.id, "amountStr", e.target.value)}
-                    placeholder="10,000"
+                    placeholder="$"
+                    className="h-7 text-xs"
                   />
                 </div>
                 <Button
@@ -282,43 +295,39 @@ export function MortgageForm({ onCalculate }: MortgageFormProps) {
                   variant="ghost"
                   size="icon"
                   onClick={() => removeLumpSum(ls.id)}
-                  className="shrink-0"
+                  className="h-7 w-7 shrink-0"
                 >
-                  <Trash2 className="h-4 w-4 text-destructive" />
+                  <Trash2 className="h-3 w-3 text-destructive" />
                 </Button>
               </div>
             ))}
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Investment Comparison</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="max-w-xs space-y-2">
-            <Label htmlFor="investmentRate">Expected Annual Return (%)</Label>
-            <Input
-              id="investmentRate"
-              type="number"
-              step="0.01"
-              min="0"
-              max="30"
-              value={investmentRate}
-              onChange={(e) => setInvestmentRate(e.target.value)}
-              placeholder="8"
-            />
-            <p className="text-xs text-muted-foreground">
-              Compare investing extra payments vs. paying down the mortgage
-            </p>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Button type="submit" size="lg" className="w-full sm:w-auto">
-        Calculate
-      </Button>
-    </form>
+      {/* Investment Comparison */}
+      <div>
+        <h2 className="text-sm font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Investment Comparison
+        </h2>
+        <div className="space-y-1">
+          <Label htmlFor="investmentRate" className="text-xs">Expected Return (%)</Label>
+          <Input
+            id="investmentRate"
+            type="number"
+            step="0.01"
+            min="0"
+            max="30"
+            value={investmentRate}
+            onChange={(e) => setInvestmentRate(e.target.value)}
+            placeholder="8"
+            className="h-8 text-sm"
+          />
+          <p className="text-[10px] text-muted-foreground">
+            Compare investing vs. paying down
+          </p>
+        </div>
+      </div>
+    </div>
   )
 }

@@ -1,16 +1,15 @@
-import { Collapsible } from "@/components/ui/collapsible"
 import { formatCurrencyExact } from "@/lib/mortgage"
 import type { AmortizationResult } from "@/lib/mortgage"
 
 interface AmortizationTableProps {
   title: string
   result: AmortizationResult
-  defaultOpen?: boolean
 }
 
-export function AmortizationTable({ title, result, defaultOpen = false }: AmortizationTableProps) {
+export function AmortizationTable({ title, result }: AmortizationTableProps) {
   return (
-    <Collapsible title={`${title} (${result.totalMonths} months)`} defaultOpen={defaultOpen}>
+    <div>
+      <h2 className="text-lg font-semibold mb-3">{title} ({result.totalMonths} months)</h2>
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
@@ -37,7 +36,7 @@ export function AmortizationTable({ title, result, defaultOpen = false }: Amorti
                   {row.extraPayment > 0 ? (
                     <span className="text-green-600">{formatCurrencyExact(row.extraPayment)}</span>
                   ) : (
-                    "—"
+                    "\u2014"
                   )}
                 </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums">
@@ -57,6 +56,6 @@ export function AmortizationTable({ title, result, defaultOpen = false }: Amorti
           </tbody>
         </table>
       </div>
-    </Collapsible>
+    </div>
   )
 }
