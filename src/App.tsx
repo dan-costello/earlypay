@@ -14,7 +14,9 @@ function App() {
   const [results, setResults] = useState<CalculationResults | null>(null)
   const [showBaselineSchedule, setShowBaselineSchedule] = useState(false)
   const [showAcceleratedSchedule, setShowAcceleratedSchedule] = useState(false)
-  const [showAbout, setShowAbout] = useState(false)
+  const [showAbout, setShowAbout] = useState(() => {
+    return !localStorage.getItem("earlypay-visited")
+  })
 
   const handleCalculate = useCallback((inputs: MortgageInputs) => {
     const res = calculate(inputs)
@@ -104,7 +106,7 @@ function App() {
       )}
 
       {/* About dialog */}
-      <Dialog open={showAbout} onClose={() => setShowAbout(false)} className="max-w-lg">
+      <Dialog open={showAbout} onClose={() => { localStorage.setItem("earlypay-visited", "1"); setShowAbout(false) }} className="max-w-lg">
         <h2 className="text-lg font-semibold mb-3">About EarlyPay</h2>
         <div className="space-y-3 text-sm text-muted-foreground">
           <p>
