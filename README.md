@@ -51,10 +51,10 @@ npm run preview # preview the production build locally
 
 ## Deployment
 
-The site deploys automatically to GitHub Pages via the workflow at `.github/workflows/deploy.yml`. Every push to `master` triggers a build and deploys the `dist/` output.
+The site deploys automatically to GitHub Pages via the workflow at `.github/workflows/deploy.yml`. Every push to `main` triggers a build and deploys the `dist/` output.
 
 To enable it in a new fork:
 
 1. Go to **Settings → Pages** in your GitHub repo
 2. Set **Source** to **GitHub Actions**
-3. Push to `master` — the workflow handles the rest
+3. Push to `main` — the workflow handles the rest
