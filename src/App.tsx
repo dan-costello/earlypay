@@ -7,13 +7,14 @@ import { AmortizationTable } from "@/components/AmortizationTable"
 import { Dialog } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import { calculate } from "@/lib/mortgage"
-import { Table2 } from "lucide-react"
+import { Table2, Info } from "lucide-react"
 import type { MortgageInputs, CalculationResults } from "@/lib/mortgage"
 
 function App() {
   const [results, setResults] = useState<CalculationResults | null>(null)
   const [showBaselineSchedule, setShowBaselineSchedule] = useState(false)
   const [showAcceleratedSchedule, setShowAcceleratedSchedule] = useState(false)
+  const [showAbout, setShowAbout] = useState(false)
 
   const handleCalculate = useCallback((inputs: MortgageInputs) => {
     const res = calculate(inputs)
@@ -25,7 +26,18 @@ function App() {
       {/* Left sidebar — inputs */}
       <aside className="w-72 shrink-0 border-r bg-muted/30 p-4 overflow-y-auto">
         <header className="mb-5">
-          <h1 className="text-xl font-bold tracking-tight">EarlyPay</h1>
+          <div className="flex items-center justify-between">
+            <h1 className="text-xl font-bold tracking-tight">EarlyPay</h1>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7"
+              onClick={() => setShowAbout(true)}
+              aria-label="About EarlyPay"
+            >
+              <Info className="h-4 w-4" />
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
             Mortgage payoff &amp; investment calculator
           </p>
@@ -90,6 +102,37 @@ function App() {
           <p>Enter your mortgage details to see results</p>
         </main>
       )}
+
+      {/* About dialog */}
+      <Dialog open={showAbout} onClose={() => setShowAbout(false)} className="max-w-lg">
+        <h2 className="text-lg font-semibold mb-3">About EarlyPay</h2>
+        <div className="space-y-3 text-sm text-muted-foreground">
+          <p>
+            EarlyPay is a mortgage payoff and investment comparison calculator
+            that helps you understand the impact of making extra payments on your
+            mortgage.
+          </p>
+          <p>
+            <strong className="text-foreground">How to use:</strong> Enter your
+            mortgage details in the sidebar — including loan amount, interest
+            rate, term, and current balance. Then add any extra payments you plan
+            to make (monthly, annual, biweekly, or lump sums) to see how they
+            accelerate your payoff timeline.
+          </p>
+          <p>
+            <strong className="text-foreground">Payoff analysis:</strong> See
+            how much time and interest you save with extra payments, with
+            side-by-side charts comparing your baseline and accelerated
+            schedules.
+          </p>
+          <p>
+            <strong className="text-foreground">Investment comparison:</strong>{" "}
+            Optionally enter an expected investment return rate to compare
+            whether your extra money is better spent paying down the mortgage or
+            investing in the market.
+          </p>
+        </div>
+      </Dialog>
 
       {/* Amortization modals */}
       {results && (
