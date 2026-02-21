@@ -12,7 +12,7 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
   const remainingMonths = monthsSaved % 12
 
   return (
-    <div className="grid grid-cols-4 gap-2">
+    <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
       <div className="rounded-lg border px-3 py-2">
         <p className="text-[10px] font-medium text-muted-foreground flex items-center gap-1 mb-0.5">
           <CalendarCheck className="h-3 w-3" />
@@ -58,7 +58,7 @@ export function ResultsSummary({ results }: ResultsSummaryProps) {
           </div>
         </>
       ) : (
-        <div className="col-span-3 rounded-lg border border-dashed flex items-center justify-center py-4">
+        <div className="col-span-1 md:col-span-3 rounded-lg border border-dashed flex items-center justify-center py-4">
           <p className="text-muted-foreground text-xs flex items-center gap-1.5">
             <TrendingDown className="h-3.5 w-3.5" />
             Add extra payments to see savings
