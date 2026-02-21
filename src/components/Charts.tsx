@@ -18,8 +18,8 @@ interface ChartsProps {
   variant: "balance" | "interest" | "investment"
 }
 
-function currencyFormatter(value: number) {
-  return formatCurrency(value)
+function currencyFormatter(value: number | undefined) {
+  return value !== undefined ? formatCurrency(value) : ""
 }
 
 export function Charts({ results, variant }: ChartsProps) {
@@ -64,7 +64,7 @@ export function Charts({ results, variant }: ChartsProps) {
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="dateLabel" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
               <YAxis tickFormatter={currencyFormatter} tick={{ fontSize: 9 }} width={65} />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} labelFormatter={(label) => label} />
+              <Tooltip formatter={currencyFormatter} labelFormatter={(label) => label} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
               <Area type="monotone" dataKey="baseline" name="Minimum" stroke="#94a3b8" fill="#94a3b8" fillOpacity={0.15} strokeWidth={2} />
               {accelerated && (
@@ -99,7 +99,7 @@ export function Charts({ results, variant }: ChartsProps) {
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="dateLabel" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
               <YAxis tickFormatter={currencyFormatter} tick={{ fontSize: 9 }} width={65} />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} labelFormatter={(label) => label} />
+              <Tooltip formatter={currencyFormatter} labelFormatter={(label) => label} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
               <Line type="monotone" dataKey="baselineInterest" name="Minimum" stroke="#94a3b8" strokeWidth={2} dot={false} />
               {accelerated && (
@@ -134,7 +134,7 @@ export function Charts({ results, variant }: ChartsProps) {
               <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
               <XAxis dataKey="dateLabel" tick={{ fontSize: 9 }} interval="preserveStartEnd" />
               <YAxis tickFormatter={currencyFormatter} tick={{ fontSize: 9 }} width={65} />
-              <Tooltip formatter={(value: number) => formatCurrency(value)} labelFormatter={(label) => label} />
+              <Tooltip formatter={currencyFormatter} labelFormatter={(label) => label} />
               <Legend wrapperStyle={{ fontSize: 10 }} />
               <Area type="monotone" dataKey="investInstead" name="Invest Extra" stroke="#3b82f6" fill="#3b82f6" fillOpacity={0.1} strokeWidth={2} />
               <Area type="monotone" dataKey="paydownThenInvest" name="Pay Off → Invest" stroke="#f97316" fill="#f97316" fillOpacity={0.1} strokeWidth={2} />

@@ -1,73 +1,60 @@
-# React + TypeScript + Vite
+# EarlyPay
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A mortgage payoff and investment comparison calculator. Enter your loan details and extra payment strategy to see exactly how much interest you'll save, when you'll be debt-free, and whether paying down your mortgage early beats investing that money instead.
 
-Currently, two official plugins are available:
+**Live site:** https://dan-costello.github.io/earlypay/
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+---
 
-## React Compiler
+## Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Baseline vs. accelerated amortization** — compares minimum payments against any extra payment strategy
+- **Extra payment types**
+  - Extra monthly amount
+  - Annual lump sum (pick which month)
+  - One-off lump sums on specific dates
+  - Bi-weekly payment mode (equivalent to one extra payment per year)
+- **Investment comparison** — models two strategies over the life of the loan:
+  - Invest the extra monthly amount throughout the loan term
+  - Make minimum payments → pay off early → invest the full P&I payment afterward
+- **Charts** — balance over time, cumulative interest, and investment growth
+- **Full amortization tables** — viewable in a modal for both baseline and accelerated schedules
 
-## Expanding the ESLint configuration
+---
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+## Tech stack
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+- [React 19](https://react.dev) + [TypeScript](https://www.typescriptlang.org)
+- [Vite 7](https://vite.dev) — build tooling
+- [Tailwind CSS v4](https://tailwindcss.com) — styling
+- [Recharts](https://recharts.org) — charts
+- [Radix UI](https://www.radix-ui.com) — accessible UI primitives
+- [date-fns](https://date-fns.org) — date arithmetic
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+---
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Local development
+
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Open http://localhost:5173.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm run build   # production build → dist/
+npm run preview # preview the production build locally
 ```
+
+---
+
+## Deployment
+
+The site deploys automatically to GitHub Pages via the workflow at `.github/workflows/deploy.yml`. Every push to `master` triggers a build and deploys the `dist/` output.
+
+To enable it in a new fork:
+
+1. Go to **Settings → Pages** in your GitHub repo
+2. Set **Source** to **GitHub Actions**
+3. Push to `master` — the workflow handles the rest
