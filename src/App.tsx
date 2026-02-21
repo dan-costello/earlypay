@@ -73,7 +73,7 @@ function App() {
       {/* Left sidebar / mobile form view */}
       <aside
         className={cn(
-          "md:w-72 md:shrink-0 md:border-r md:bg-muted/30 md:p-4 md:overflow-y-auto",
+          "md:w-72 md:shrink-0 md:flex-none md:border-r md:bg-muted/30 md:p-4 md:overflow-y-auto",
           "flex-1 overflow-y-auto p-4 bg-muted/30",
           mobileView === "results" && "hidden md:block"
         )}
